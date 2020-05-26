@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.awes.ems.dto.BaseDTO;
 import com.awes.ems.dto.EmployeeDTO;
 import com.awes.ems.entity.Employee;
 import com.awes.ems.mapper.EmployeeMapper;
@@ -36,21 +37,28 @@ public class AuthenticationController {
 
 	@PostMapping("/login")
 	public ResponseEntity<Object> authenticateUser(@RequestBody EmployeeDTO loginRequest) {
-		Authentication authentication = authenticationManager.authenticate(
-				new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
+		try {
+			Authentication authentication = authenticationManager.authenticate(
+					new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
 
-		SecurityContextHolder.getContext().setAuthentication(authentication);
-		// EmployeePrincipal employeePrincipal = (EmployeePrincipal)
-		// authentication.getPrincipal();
-		String jwt = tokenProvider.generateToken(authentication);
-		if (authentication.getPrincipal() instanceof EmployeePrincipal)
-			((EmployeePrincipal) (authentication.getPrincipal())).setJwtToken(jwt);
+			SecurityContextHolder.getContext().setAuthentication(authentication);
+			// EmployeePrincipal employeePrincipal = (EmployeePrincipal)
+			// authentication.getPrincipal();
+			String jwt = tokenProvider.generateToken(authentication);
+			if (authentication.getPrincipal() instanceof EmployeePrincipal)
+				((EmployeePrincipal) (authentication.getPrincipal())).setJwtToken(jwt);
 
-		return ResponseEntity.ok(authentication.getPrincipal());
+			return ResponseEntity.ok(authentication.getPrincipal());
+		
+		}
+		catch (Exception e) {
+			return ResponseEntity.ok(new BaseDTO(false, "Invalid email or password"));
+		}
+		
 	}
 
 	@PostMapping("/signup")
-	public EmployeeDTO addEmployee(@RequestBody EmployeeDTO signUpRequest) {
+	public BaseDTO addEmployee(@RequestBody EmployeeDTO signUpRequest) {
 		Employee employee = employeeService.findByEmail(signUpRequest.getEmail());
 		if (employee == null) {
 			employee = employeeService.save(employeeMapper.toEmployee(signUpRequest));
@@ -59,7 +67,7 @@ public class AuthenticationController {
 			employeeDTO.setMessage("Employee saved successfully");
 			return employeeDTO;
 		}
-		return new EmployeeDTO(false, "email already exist");
+		return new BaseDTO(false, "email already exist");
 
 	}
 
